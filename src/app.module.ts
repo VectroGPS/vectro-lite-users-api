@@ -9,16 +9,21 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserService } from './user/user.service';
 
 @Module({
-  imports: [UserModule, AuthModule, ConfigModule.forRoot({
-    isGlobal: true,
-  }), MongooseModule.forRootAsync({
-    imports: [ConfigModule],
-    useFactory: async (config: ConfigService) => ({
-      uri: config.get('MONGODB_CONNECTION_STRING'),
+  imports: [
+    UserModule,
+    AuthModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
-    inject: [ConfigService],
-  })],
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (config: ConfigService) => ({
+        uri: config.get('MONGODB_CONNECTION_STRING'),
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

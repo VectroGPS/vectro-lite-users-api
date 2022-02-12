@@ -1,4 +1,12 @@
-import { Body, Catch, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Catch,
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { Error } from 'mongoose';
 import { AppService } from './app.service';
 import { AuthService } from './auth/auth.service';
@@ -9,31 +17,37 @@ import { UserService } from './user/user.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService, private readonly authService: AuthService, private readonly userService: UserService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   @Get()
-  hello(): any{
-    return this.appService.getHello()
+  hello(): any {
+    return this.appService.getHello();
   }
 
   @Post('signup')
   async create(@Body() createUserDto: CreateUserDto, @Request() req) {
     const user = await this.userService.create(createUserDto);
+    console.log(user);
     return {
-      "message": "signup successful",
-      "user": user
-    }
+      message: 'signup successful',
+      user: user,
+    };
   }
-  
+
   @UseGuards(LocalAuthGaurd)
   @Post('login')
   login(@Request() req): any {
-    return this.authService.login(req.user)
-  } 
+    return this.authService.login(req.user);
+  }
 
   @UseGuards(JwtAuthGaurd)
   @Get('protected')
-  getHello(@Request() req): string { 
+  getHello(@Request() req): string {
+    console.log(req.user);
     return req.user;
   }
 }
