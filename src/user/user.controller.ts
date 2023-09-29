@@ -129,14 +129,14 @@ export class UserController {
     }
     if (files.icon) {
       // remove old file
-      const oldIcon = user.customProperties.whiteLabel.icon;
+      const oldIcon = user.customProperties?.whiteLabel?.icon;
       if (oldIcon) {
         this.filesService.delete(oldIcon);
       }
     }
     if (files.logo) {
       // remove old file
-      const oldLogo = user.customProperties.whiteLabel.logo;
+      const oldLogo = user.customProperties?.whiteLabel?.logo;
       if (oldLogo) {
         this.filesService.delete(oldLogo);
       }
@@ -172,7 +172,7 @@ export class UserController {
     if (!user) {
       throw new BadRequestException(['User not found.']);
     }
-    const oldFile = user.customProperties.whiteLabel[file];
+    const oldFile = user?.customProperties?.whiteLabel[file];
     if (!oldFile) {
       throw new BadRequestException(['File not found.']);
     }
