@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const bcrypt = require('bcrypt');
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/user/user.service';
@@ -15,7 +16,6 @@ export class AuthService {
 
     if (user && (await bcrypt.compare(password, user.password))) {
       const { password, ...rest } = user;
-
       return rest;
     }
 
@@ -27,6 +27,8 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
+      username: user.username,
+      _id: user._id,
     };
   }
 }
