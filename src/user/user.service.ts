@@ -78,6 +78,7 @@ export class UserService {
 
   async findOneWithUsername(username: string): Promise<any> {
     const user = await this.userModel.findOne({ username: username }).exec();
+    console.log(user);
     if (!user) {
       throw new BadRequestException(['User not found.']);
     }
@@ -85,6 +86,8 @@ export class UserService {
   }
 
   async findOneWithId(id: string): Promise<any> {
+    console.log(id);
+    console.log(await this.userModel.find({ _id: id }).exec());
     const user = await this.userModel.findById(id).exec();
     if (!user) {
       throw new BadRequestException(['User not found.']);

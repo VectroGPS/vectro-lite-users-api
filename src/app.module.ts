@@ -28,6 +28,8 @@ import { FilesModule } from './files/files.module';
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
         uri: config.get('MONGODB_CONNECTION_STRING'),
+        useNewUrlParser: true,
+        dbName: config.get('MONGODB_DATABASE') || 'Vectro_Lite',
       }),
       inject: [ConfigService],
     }),

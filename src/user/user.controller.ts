@@ -63,12 +63,24 @@ export class UserController {
     };
   }
 
-  @Roles(UserRoles.admin, UserRoles.manager)
+  // @Roles(UserRoles.admin, UserRoles.manager)
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() createUserDto: Partial<CreateUserDto>,
+    @Request() req,
   ) {
+    // if the user is not admin or manager, he can only update his own account
+    if (
+      req.user.role !== UserRoles.admin &&
+      req.user.role !== UserRoles.manager
+    ) {
+      if (req.user._id.toString() !== id) {
+        throw new BadRequestException([
+          'You can only update your own account.',
+        ]);
+      }
+    }
     console.log(createUserDto, id);
     const newUser = await this.userService.update(id, createUserDto);
     // const token = await this.authService.login({
