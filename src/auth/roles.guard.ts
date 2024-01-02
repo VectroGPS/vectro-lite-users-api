@@ -3,7 +3,7 @@ import { HttpStatus } from '@nestjs/common/enums';
 import { HttpException } from '@nestjs/common/exceptions';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
-import { UserRoles } from 'src/user/interfaces/roles';
+import { UserRoles } from '../user/interfaces/roles';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

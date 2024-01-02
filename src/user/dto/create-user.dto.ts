@@ -8,16 +8,20 @@ import {
   MinLength,
 } from 'class-validator';
 import { UserRoles } from '../interfaces/roles';
+import { Transform } from 'class-transformer';
 
 export class CreateUserDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Fullname is required' })
   fullname: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'Username is required' })
+  @Transform(({ value }) => value.trim())
   username: string;
 
-  @IsEmail()
+  @IsEmail({}, { message: 'Invalid email format' })
+  @IsNotEmpty({ message: 'Email is required' })
   email: string;
 
   @IsString()

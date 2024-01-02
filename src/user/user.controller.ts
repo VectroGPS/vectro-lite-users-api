@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -15,23 +16,22 @@ import {
   FileFieldsInterceptor,
   FileInterceptor,
 } from '@nestjs/platform-express';
-import { AuthService } from 'src/auth/auth.service';
-import { Roles } from 'src/auth/roles.decorator';
+import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserRoles } from './interfaces/roles';
 import { UserService } from './user.service';
 import { diskStorage } from 'multer';
 import { UseInterceptors } from '@nestjs/common/decorators/core/use-interceptors.decorator';
-import { FilesService } from 'src/files/files.service';
+import { FilesService } from '../files/files.service';
+import { Public } from '../auth/jwt.decorator';
 
+// jwt auth guard is used module level (globally)
 @Controller('users')
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly authService: AuthService,
     private readonly filesService: FilesService,
   ) {}
-
   @Get()
   async findAll(@Request() req) {
     const users = await this.userService.findAll(req.user);
@@ -40,7 +40,6 @@ export class UserController {
       data: users,
     };
   }
-
   @Roles(UserRoles.admin, UserRoles.manager)
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req) {
@@ -50,7 +49,6 @@ export class UserController {
       data: user,
     };
   }
-
   // @UseGuards(JwtAuthGaurd)
   @Roles(UserRoles.admin, UserRoles.manager)
   @Post()
@@ -62,7 +60,6 @@ export class UserController {
       data: user,
     };
   }
-
   // @Roles(UserRoles.admin, UserRoles.manager)
   @Patch(':id')
   async update(
@@ -83,13 +80,6 @@ export class UserController {
     }
     console.log(createUserDto, id);
     const newUser = await this.userService.update(id, createUserDto);
-    // const token = await this.authService.login({
-    //   _id,
-    //   username: rest.username,
-    // });
-    // console.log(rest);
-
-    // rest['token'] = token;
     return {
       message: 'update successful',
       data: newUser,
@@ -104,7 +94,35 @@ export class UserController {
       data: user,
     };
   }
-
+  // methods to forgot password
+  // 1.- send email with token
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    await this.userService.requestPasswordReset(body.email);
+    return {
+      message: 'email sent',
+    };
+  }
+  // 2.- reset password
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; password: string }) {
+    try {
+      console.log(body.token, body.password);
+      await this.userService.resetPassword(body.token, body.password);
+      return {
+        message: 'password reset successful',
+      };
+    } catch (error) {
+      console.log(error);
+      // return {
+      //   statusCode: HttpStatus.BAD_REQUEST,
+      //   message: 'password reset failed',
+      // };
+      throw new BadRequestException(['password reset failed']);
+    }
+  }
   @Roles(UserRoles.account, UserRoles.admin, UserRoles.manager)
   @Post('icons/:id')
   @UseInterceptors(
@@ -172,7 +190,6 @@ export class UserController {
       data: user2 || user1,
     };
   }
-
   @Roles(UserRoles.account, UserRoles.admin, UserRoles.manager)
   @Delete('icons/:id/:file')
   async removeFile(

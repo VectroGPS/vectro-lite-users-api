@@ -6,19 +6,22 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+// const crypto = require('crypto');
+import * as crypto from 'crypto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Error, Model } from 'mongoose';
+import { Error, Model, Schema, Types } from 'mongoose';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bcrypt = require('bcrypt');
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserDocument } from './schema/user.schema';
+import { UserDocument, User } from './schema/user.schema';
 // import { ConfigService } from '@nestjs/config';
-import { User } from './entities/user.entity';
+import { UserEntity } from './entities/user.entity';
 import { NotFoundError } from 'rxjs';
 
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserRoles } from './interfaces/roles';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class UserService {
@@ -26,6 +29,7 @@ export class UserService {
   constructor(
     @InjectModel('User') private userModel: Model<User>,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {
     this.jwtService = new JwtService({
       secret: this.configService.get('JWT_SECRET'),
@@ -33,28 +37,48 @@ export class UserService {
     });
   }
 
-  async findAll(user: UserDocument): Promise<User[]> {
-    let users: UserDocument[];
-    if ([UserRoles.admin, UserRoles.manager].includes(user.role)) {
-      users = await this.userModel.find().exec();
-    } else if (user.role === UserRoles.account) {
-      // busca los usuarios que tengan como parent el id del usuario logueado o el mismo id del usuario logueado
-      users = await this.userModel.find({
-        $or: [{ parent: user._id }, { _id: user._id }],
-      });
-    } else {
-      const parentAccount = await this.userModel
-        .findOne({ _id: user.parent })
-        .exec();
-      const { whiteLabel } = parentAccount.customProperties;
-      users = await this.userModel.find({ _id: user._id }).exec();
-      // users[0].customProperties.whiteLabel = whiteLabel;
-      users[0].customProperties = { ...users[0].customProperties, whiteLabel };
+  async findAll(loggedInUser: UserDocument): Promise<User[]> {
+    if (this.isAdminOrManager(loggedInUser)) {
+      return this.userModel.find({}, { password: 0, resetPassword: 0 }).exec();
     }
-    return users.map((user) => {
-      const { password, ...rest } = user.toObject();
-      return rest as User;
-    });
+
+    if (loggedInUser.role === UserRoles.account) {
+      return this.findUsersByParent(loggedInUser._id);
+    }
+
+    const parentAccount = await this.getParentAccount(loggedInUser.parent);
+    const { whiteLabel } = parentAccount.customProperties;
+    const user = await this.userModel
+      .findById(loggedInUser._id, {
+        password: 0,
+        resetPassword: 0,
+      })
+      .exec();
+    user.customProperties = { ...user.customProperties, whiteLabel };
+
+    // const { password, ...rest } = user.toObject();
+    return [user];
+  }
+
+  private isAdminOrManager(user: UserDocument): boolean {
+    return [UserRoles.admin, UserRoles.manager].includes(user.role);
+  }
+
+  private async findUsersByParent(
+    parentId: Types.ObjectId,
+  ): Promise<UserDocument[]> {
+    return this.userModel
+      .find(
+        { $or: [{ parent: parentId }, { _id: parentId }] },
+        { password: 0, resetPassword: 0 },
+      )
+      .exec();
+  }
+
+  private async getParentAccount(
+    parentId: Types.ObjectId,
+  ): Promise<UserDocument> {
+    return this.userModel.findOne({ _id: parentId }).exec();
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -147,6 +171,62 @@ export class UserService {
   remove(id: string) {
     console.log(`This action removes a #${id} user`);
     return this.userModel.findByIdAndRemove(id).exec();
-    return `This action removes a #${id} user`;
+  }
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.userModel.findOne({ email }).exec();
+
+    if (!user) {
+      // throw new BadRequestException(['User not found.']);
+      return;
+    }
+    const parentAccount = await this.getParentAccount(user.parent);
+
+    // Generar y guardar un token temporal para restablecer la contraseña
+    const resetToken = this.generateResetToken();
+    user.resetPassword = {
+      token: resetToken,
+      expires: Date.now() + 3600000, // tiempo de expiracion = 1 hora
+    };
+    await this.userModel.findByIdAndUpdate(user._id, user, { new: true });
+    const title =
+      user?.customProperties?.whiteLabel?.title ||
+      parentAccount?.customProperties?.whiteLabel?.title;
+    // Aquí deberías enviar un correo electrónico con el token y el enlace de restablecimiento
+    this.emailService.sendResetPasswordEmail(user.email, resetToken, title);
+
+    // Opcional: Log para verificar el token generado
+    console.log('Reset Token:', resetToken);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.userModel
+      .findOne({
+        // resetPasswordToken: token,
+        // resetPasswordExpires: { $gt: Date.now() },
+        'resetPassword.token': token,
+        'resetPassword.expires': { $gt: Date.now() },
+      })
+      .exec();
+
+    if (!user) {
+      throw new BadRequestException(['Invalid or expired token.']);
+    }
+    console.log(user);
+    // Actualizar la contraseña y limpiar el token temporal
+    const salt = bcrypt.genSaltSync(
+      parseInt(this.configService.get('SALT_ROUNDS')),
+    );
+    const encryptedPassword = bcrypt.hashSync(newPassword, salt);
+    user.password = encryptedPassword;
+    // user.resetPasswordToken = undefined;
+    // user.resetPasswordExpires = undefined;
+    delete user.resetPassword;
+    await this.userModel.findByIdAndUpdate(user._id, user, { new: true });
+  }
+
+  private generateResetToken(): string {
+    // Implementa la lógica para generar un token único aquí (puedes usar bibliotecas como `crypto` o `uuid`)
+    // Aquí se muestra un ejemplo básico usando `crypto`
+    return crypto.randomBytes(8).toString('hex');
   }
 }

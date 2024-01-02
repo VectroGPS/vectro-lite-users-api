@@ -1,15 +1,18 @@
-import { Schema, Document } from 'mongoose';
-import { User } from '../entities/user.entity';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
+import { UserEntity } from '../entities/user.entity';
 import { UserRoles } from '../interfaces/roles';
 
-export const UserSchema = new Schema({
-  fullname: {
+export type UserDocument = HydratedDocument<User>;
+@Schema()
+export class User implements UserEntity {
+  @Prop({ type: String, required: true })
+  fullname: string;
+
+  @Prop({
     type: String,
-    required: [true, 'Enter full name.'],
-  },
-  username: {
-    type: String,
-    required: [true, 'A Username is required.'],
+    required: true,
+    unique: true,
     validate: {
       validator: function (v) {
         return this.model('User')
@@ -18,44 +21,59 @@ export const UserSchema = new Schema({
       },
       message: (props) => `Username is already taken`,
     },
-  },
-  email: {
+  })
+  username: string;
+
+  @Prop({
     type: String,
-    required: [true, 'email is required'],
+    required: true,
+    unique: true,
     match: [/^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/, 'Invalid email format'],
-    validate: {
-      validator: function (v) {
-        return this.model('User')
-          .findOne({ email: v })
-          .then((user) => !user);
+  })
+  email: string;
+
+  @Prop({ type: String, required: true })
+  password?: string;
+
+  @Prop({ type: Object, required: false })
+  config: any;
+
+  @Prop(
+    raw({
+      trackingList: { type: [String], required: false },
+      whiteLabel: {
+        icon: { type: String, required: false },
+        logo: { type: String, required: false },
+        title: { type: String, required: false },
       },
-      message: (props) => `Email is already taken`,
-    },
-  },
-  password: {
-    type: String,
-    required: [true, 'Enter a password.'],
-  },
-  config: {
-    type: Object,
-    required: false,
-  },
+    }),
+  )
   customProperties: {
-    type: Object,
-    required: false,
-  },
-  parent: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: false,
-  },
-  // admin, user
-  role: {
+    // [key: string]: any;
+    trackingList?: string[];
+    whiteLabel: {
+      icon: string;
+      logo?: string;
+      title?: string;
+    };
+  };
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: false })
+  parent: Types.ObjectId;
+
+  @Prop({
     type: String,
     enum: UserRoles,
     required: false,
     default: UserRoles.account,
-  },
-});
+  })
+  role: UserRoles;
 
-export type UserDocument = User & Document;
+  @Prop(raw({ token: { type: String }, expires: { type: Number } }))
+  resetPassword?: {
+    token: string;
+    expires: number;
+  };
+}
+
+export const UserSchema = SchemaFactory.createForClass(User);

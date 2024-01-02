@@ -11,6 +11,7 @@ import { RolesGuard } from './auth/roles.guard';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { FilesModule } from './files/files.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { FilesModule } from './files/files.module';
       inject: [ConfigService],
     }),
     FilesModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
