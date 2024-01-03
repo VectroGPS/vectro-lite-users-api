@@ -10,6 +10,7 @@ import { JwtAuthGaurd } from './auth/jwt-auth.gaurd';
 import { RolesGuard } from './auth/roles.guard';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { GoogleRecaptchaModule } from '@nestlab/google-recaptcha';
 import { FilesModule } from './files/files.module';
 import { EmailModule } from './email/email.module';
 
@@ -31,6 +32,14 @@ import { EmailModule } from './email/email.module';
         uri: config.get('MONGODB_CONNECTION_STRING'),
         useNewUrlParser: true,
         dbName: config.get('MONGODB_DATABASE') || 'Vectro_Lite',
+      }),
+      inject: [ConfigService],
+    }),
+    GoogleRecaptchaModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secretKey: config.get('GOOGLE_RECAPTCHA_SECRET_KEY'),
+        response: (req) => req.headers.recaptcha,
       }),
       inject: [ConfigService],
     }),

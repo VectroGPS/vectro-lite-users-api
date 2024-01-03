@@ -1,15 +1,28 @@
-import { Controller, UseGuards, Post, Request } from '@nestjs/common';
+import { Controller, UseGuards, Post, Request, Body } from '@nestjs/common';
+import { GoogleRecaptchaValidator } from '@nestlab/google-recaptcha';
 import { AuthService } from './auth.service';
-import { LocalAuthGaurd } from './local-auth.gaurd';
+import { LocalAuthGuard } from './local-auth.guard';
 import { Public } from './jwt.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly reCaptchaValidator: GoogleRecaptchaValidator,
+  ) {}
+
   @Public()
-  @UseGuards(LocalAuthGaurd)
+  @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Request() req): any {
+  async login(@Request() req: any, @Body('recaptcha') recaptcha: string) {
+    const response = await this.reCaptchaValidator.validate({
+      response: recaptcha,
+    });
+
+    if (!response.success) {
+      throw new Error('reCaptcha validation failed');
+    }
+
     return this.authService.login(req.user);
   }
 }
