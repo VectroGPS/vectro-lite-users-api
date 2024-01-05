@@ -54,7 +54,6 @@ export class UserController {
   @Post()
   async create(@Body() createUserDto: CreateUserDto, @Request() req) {
     const user = await this.userService.create(createUserDto);
-    console.log(user);
     return {
       message: 'signup successful',
       data: user,
@@ -78,7 +77,6 @@ export class UserController {
         ]);
       }
     }
-    console.log(createUserDto, id);
     const newUser = await this.userService.update(id, createUserDto);
     return {
       message: 'update successful',
@@ -109,7 +107,6 @@ export class UserController {
   @Post('reset-password')
   async resetPassword(@Body() body: { token: string; password: string }) {
     try {
-      console.log(body.token, body.password);
       await this.userService.resetPassword(body.token, body.password);
       return {
         message: 'password reset successful',
@@ -196,7 +193,6 @@ export class UserController {
     @Param('id') id: string,
     @Param('file') file: 'icon' | 'logo',
   ) {
-    console.log(file);
     const user = await this.userService.findOneWithId(id);
     if (!user) {
       throw new BadRequestException(['User not found.']);

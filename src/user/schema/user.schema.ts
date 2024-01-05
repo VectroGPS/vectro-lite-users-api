@@ -69,10 +69,17 @@ export class User implements UserEntity {
   })
   role: UserRoles;
 
-  @Prop(raw({ token: { type: String }, expires: { type: Number } }))
+  @Prop(
+    raw({
+      token: { type: String },
+      expires: { type: Number },
+      firstLogin: { type: Boolean },
+    }),
+  )
   resetPassword?: {
-    token: string;
-    expires: number;
+    token?: string;
+    expires?: number;
+    firstLogin?: boolean;
   };
 }
 

@@ -20,7 +20,8 @@ export class UserEntity {
   password?: string;
   email: string;
   resetPassword?: {
-    token: string;
-    expires: number;
+    token?: string;
+    expires?: number;
+    firstLogin?: boolean;
   };
 }

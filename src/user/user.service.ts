@@ -88,10 +88,14 @@ export class UserService {
       );
       const encryptedPassword = bcrypt.hashSync(createUserDto.password, salt);
       createUserDto.password = encryptedPassword;
-      const createdUser = new this.userModel(createUserDto);
+      const createdUser = new this.userModel({
+        ...createUserDto,
+        resetPassword: {
+          firstLogin: true,
+        },
+      });
       const user = await createdUser.save();
       const { password, ...rest } = user.toObject();
-
       return rest;
     } catch (error) {
       throw new BadRequestException([
@@ -100,9 +104,8 @@ export class UserService {
     }
   }
 
-  async findOneWithUsername(username: string): Promise<any> {
+  async findOneWithUsername(username: string): Promise<UserEntity> {
     const user = await this.userModel.findOne({ username: username }).exec();
-    console.log(user);
     if (!user) {
       throw new BadRequestException(['User not found.']);
     }
@@ -110,8 +113,6 @@ export class UserService {
   }
 
   async findOneWithId(id: string): Promise<any> {
-    console.log(id);
-    console.log(await this.userModel.find({ _id: id }).exec());
     const user = await this.userModel.findById(id).exec();
     if (!user) {
       throw new BadRequestException(['User not found.']);
@@ -130,7 +131,11 @@ export class UserService {
         createUserDto.password = encryptedPassword;
       }
       const user = await this.userModel
-        .findByIdAndUpdate(userId, createUserDto, { new: true })
+        .findByIdAndUpdate(
+          userId,
+          { ...createUserDto, resetPassword: null },
+          { new: true },
+        )
         .exec();
       if (!user) {
         throw new BadRequestException(['User not found.']);
@@ -169,7 +174,6 @@ export class UserService {
   }
 
   remove(id: string) {
-    console.log(`This action removes a #${id} user`);
     return this.userModel.findByIdAndRemove(id).exec();
   }
   async requestPasswordReset(email: string): Promise<void> {
@@ -195,7 +199,6 @@ export class UserService {
     this.emailService.sendResetPasswordEmail(user.email, resetToken, title);
 
     // Opcional: Log para verificar el token generado
-    console.log('Reset Token:', resetToken);
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -211,7 +214,6 @@ export class UserService {
     if (!user) {
       throw new BadRequestException(['Invalid or expired token.']);
     }
-    console.log(user);
     // Actualizar la contraseña y limpiar el token temporal
     const salt = bcrypt.genSaltSync(
       parseInt(this.configService.get('SALT_ROUNDS')),
@@ -220,8 +222,10 @@ export class UserService {
     user.password = encryptedPassword;
     // user.resetPasswordToken = undefined;
     // user.resetPasswordExpires = undefined;
-    delete user.resetPassword;
-    await this.userModel.findByIdAndUpdate(user._id, user, { new: true });
+    user.resetPassword = null;
+    const user1 = await this.userModel.findByIdAndUpdate(user._id, user, {
+      new: true,
+    });
   }
 
   private generateResetToken(): string {
