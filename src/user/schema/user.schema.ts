@@ -41,6 +41,7 @@ export class User implements UserEntity {
   @Prop(
     raw({
       trackingList: { type: [String], required: false },
+      geofencesShowed: { type: [String], required: false },
       whiteLabel: {
         icon: { type: String, required: false },
         logo: { type: String, required: false },
@@ -51,6 +52,7 @@ export class User implements UserEntity {
   customProperties: {
     // [key: string]: any;
     trackingList?: string[];
+    geofencesShowed?: string[];
     whiteLabel: {
       icon: string;
       logo?: string;

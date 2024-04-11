@@ -10,7 +10,7 @@ export class EmailService {
     platform = 'Vectro Lite',
   ): Promise<void> {
     const url = `https://lite.vectro.com.mx/reset-password?token=${token}`;
-    await this.mailerService.sendMail({
+    return await this.mailerService.sendMail({
       to,
       subject: 'Restablecer contraseña',
       template: 'reset-password',
