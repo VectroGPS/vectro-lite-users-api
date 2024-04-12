@@ -40,6 +40,8 @@ import { EmailModule } from './email/email.module';
       useFactory: (config: ConfigService) => ({
         secretKey: config.get('GOOGLE_RECAPTCHA_SECRET_KEY'),
         response: (req) => req.headers.recaptcha,
+        actions: ['login'],
+        score: 0.8,
       }),
       inject: [ConfigService],
     }),
@@ -72,4 +74,4 @@ import { EmailModule } from './email/email.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
