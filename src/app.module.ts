@@ -53,8 +53,8 @@ import { EmailModule } from './email/email.module';
         // secretOrPrivateKey: configService.get('JWT_SECRET'),
         signOptions: {
           // expiresIn: 3600,
-          // 1 mes
-          expiresIn: 2592000,
+          // 1 week
+          expiresIn: 604800,
         },
       }),
       inject: [ConfigService],
