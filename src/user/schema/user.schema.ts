@@ -71,6 +71,9 @@ export class User implements UserEntity {
   })
   role: UserRoles;
 
+  @Prop({ type: [String], required: false })
+  firebaseMessagingToken: string[];
+
   @Prop(
     raw({
       token: { type: String },

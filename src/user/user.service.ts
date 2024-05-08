@@ -145,11 +145,32 @@ export class UserService {
       // rest['token'] = this.jwtService.sign({ sub: _id.toString() });
       return { ...rest };
     } catch (error) {
-      throw new BadRequestException([
-        error?.errors[Object.keys(error?.errors)[0]]?.message,
-      ]);
+      console.log(error);
+      throw new BadRequestException(error);
     }
     // return `This action updates a #${id} user`;
+  }
+
+  async updateFirebaseToken(userId: string, token: string) {
+    try {
+      const map = new Map();
+      const user = await this.userModel.findById(userId).exec();
+      user.firebaseMessagingToken?.forEach((t) => map.set(t.split(':')[0], t));
+      map.set(token.split(':')[0], token);
+      user.firebaseMessagingToken = Array.from(map.values());
+
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, user, { new: true })
+        .exec();
+      if (!updatedUser) {
+        throw new BadRequestException(['User not found.']);
+      }
+      const { password, ...rest } = updatedUser.toObject();
+      console.log(rest);
+      return { ...rest };
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async customProperties(userId: string, key: string, value: any) {

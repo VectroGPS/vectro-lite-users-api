@@ -92,6 +92,18 @@ export class UserController {
       data: user,
     };
   }
+  @Post('firebase/:token')
+  async firebase(@Param('token') token: string, @Request() req) {
+    console.log(token);
+    const user = await this.userService.updateFirebaseToken(
+      req.user._id,
+      token,
+    );
+    return {
+      message: 'firebase token updated',
+      data: req.user,
+    };
+  }
   // methods to forgot password
   // 1.- send email with token
   @Public()

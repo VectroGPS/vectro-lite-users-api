@@ -18,7 +18,6 @@ export class AuthController {
     const response = await this.reCaptchaValidator.validate({
       response: recaptcha,
     });
-
     if (!response.success) {
       throw new Error('reCaptcha validation failed');
     }
